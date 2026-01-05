@@ -1,4 +1,4 @@
-include(":BetterCodeBlocks")
+//include(":BetterCodeBlocks")
 include(":BetterStatusIndicators")
 include(":CustomNicknameFormat")
 include(":CustomTimestamps")
