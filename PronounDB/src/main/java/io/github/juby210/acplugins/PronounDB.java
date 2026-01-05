@@ -116,21 +116,34 @@ public final class PronounDB extends Plugin {
     }
 
     public void addPronounsToHeader(TextView pronounsView, Long userId, boolean bot) {
-        String c;
-        if (bot || (c = Store.cache.get(userId)) == null || c.equals("unspecified")) {
+        var pronouns = Store.cache.get(userId);
+
+        if (bot || pronouns == null || pronouns.isEmpty()) {
             pronounsView.setVisibility(View.GONE);
             return;
         }
+
+        
         pronounsView.setVisibility(View.VISIBLE);
-        pronounsView.setText(" • " + Constants.getPronouns(c, settings.getInt("format", 0)));
+        String display = Constants.getPronouns(pronouns, settings.getInt("format", 0));
+        if (display != null) {
+            pronounsView.setText(" • " + display);
+        } else {
+            pronounsView.setVisibility(View.GONE);
+        }
     }
 
     private static final int noteHeaderId = Utils.getResId("user_sheet_note_header", "id");
 
     public void addPronounsToUserSheet(WidgetUserSheetBinding binding, Long userId) {
-        var c = Store.cache.get(userId);
-        if (c == null || c.equals("unspecified")) return;
+        var pronouns = Store.cache.get(userId);
+        if (pronouns == null || pronouns.isEmpty()) return;
 
+        String display = Constants.getPronouns(pronouns, settings.getInt("format", 0));
+        if (display != null) {
+            return;
+        }
+        
         var noteHeader = binding.a.findViewById(noteHeaderId);
         var layout = (LinearLayout) noteHeader.getParent();
 
@@ -142,7 +155,10 @@ public final class PronounDB extends Plugin {
             pronounsView.setPadding(DimenUtils.dpToPx(16), 0, 0, 0);
             layout.addView(pronounsView, layout.indexOfChild(noteHeader));
         }
-        pronounsView.setText("Pronouns • " + Constants.getPronouns(c, settings.getInt("format", 0)));
+        
+
+
+        pronounsView.setText("Pronouns • " + display);
     }
 
     public final int viewId = View.generateViewId();

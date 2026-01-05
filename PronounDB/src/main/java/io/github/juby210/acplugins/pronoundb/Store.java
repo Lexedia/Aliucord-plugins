@@ -13,9 +13,15 @@ import java.lang.reflect.Type;
 import java.util.*;
 
 public final class Store {
-    public static Map<Long, String> cache = new HashMap<>();
+    public static Map<Long, List<String>> cache = new HashMap<>();
 
-    private static final Type resType = TypeToken.getParameterized(Map.class, Long.class, String.class).getType();
+    
+    static class PronounDBUserResponse {
+        public Map<String, List<String>> sets;
+    }
+    
+
+    private static final Type resType = new TypeToken<Map<String, PronounDBUserResponse>>(){}.getType();
     private static final List<Long> buffer = new ArrayList<>();
     private static Thread timerThread = new Thread(Store::runThread);
     public static void fetchPronouns(Long id) {
@@ -39,7 +45,29 @@ public final class Store {
             Thread.sleep(50);
             var bufferCopy = buffer.toArray(new Long[0]);
             buffer.clear();
-            Map<Long, String> res = Http.simpleJsonGet(Constants.Endpoints.LOOKUP_BULK(bufferCopy), resType);
+            // Map<Long, String> res = Http.simpleJsonGet(Constants.Endpoints.LOOKUP_BULK(bufferCopy), resType);
+            Map<String, String> headers = new HashMap<>();
+            headers.put("User-Agent", Constants.USER_AGENT);
+
+            Map<String, PronounDBUserResponse> res = Http.simpleJsonGet(Constants.Endpoints.LOOKUP_BULK(bufferCopy), headers, resType);
+
+            if (res != null) {
+                for (var id : bufferCopy) {
+                    String idStr = id.toString();
+                    PronounDBUserResponse response = res.get(idStr);
+
+                    if (response != null && response.sets != null && response.sets.containsKey("en")) {
+                        List<String> pronounKeys = response.sets.get("en");
+                        if (pronounKeys != null && !pronounKeys.isEmpty()) {
+                            cache.put(id, pronounKeys);
+                        } else {
+                            cache.put(id, Collections.emptyList());
+                        }
+                    } else {
+                        cache.put(id, Collections.emptyList());
+                    }
+                }
+            }
             cache.putAll(res);
             for (var id : bufferCopy) {
                 if (!cache.containsKey(id)) cache.put(id, "unspecified");
